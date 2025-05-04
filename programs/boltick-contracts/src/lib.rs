@@ -8,7 +8,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use states::*;
 
-declare_id!("7GreiHo9FwZBLucB2r8Mj3czeRGYWUJqbHqRetYNNsFm");
+declare_id!("B1dbydiCFRgTz9ZZtxGZ63AvBhwwguAbZe2CgmG3JJyY");
 
 #[program]
 pub mod boltick {
