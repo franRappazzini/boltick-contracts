@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-boltick_contracts = "7GreiHo9FwZBLucB2r8Mj3czeRGYWUJqbHqRetYNNsFm"
+boltick = "B1dbydiCFRgTz9ZZtxGZ63AvBhwwguAbZe2CgmG3JJyY"
 
 [registry]
 url = "https://api.apr.dev"
