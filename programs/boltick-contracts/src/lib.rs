@@ -17,4 +17,14 @@ pub mod boltick {
     pub fn initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
         process_initialize_config(ctx)
     }
+
+    pub fn initialize_event(
+        ctx: Context<InitializeEvent>,
+        name: String,
+        symbol: String,
+        uri: String,
+        event_description: String,
+    ) -> Result<()> {
+        process_initialize_event(ctx, name, symbol, uri, event_description)
+    }
 }
