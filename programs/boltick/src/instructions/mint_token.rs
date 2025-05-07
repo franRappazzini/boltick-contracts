@@ -1,15 +1,13 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    metadata::{
-        self,
-        mpl_token_metadata::types::{Collection, Creator, DataV2},
-        Metadata,
-    },
-    token_interface::{self, Mint, TokenAccount, TokenInterface},
+    metadata::{self, mpl_token_metadata::types::Collection, Metadata},
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 use crate::{Config, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT};
+
+use super::{create_master_edition, create_metadata_accounts, mint_to};
 
 #[derive(Accounts)]
 #[instruction(event_id: u64)]
@@ -139,72 +137,49 @@ pub fn process_mint_token(
         &[ctx.bumps.collection_mint],
     ]];
 
-    token_interface::mint_to(
-        CpiContext::new_with_signer(
-            acc.token_program.to_account_info(),
-            token_interface::MintTo {
-                mint: acc.token_mint.to_account_info(),
-                to: acc.destination_token_account.to_account_info(),
-                authority: acc.collection_mint.to_account_info(),
-            },
-            signer_seeds,
-        ),
-        1,
+    mint_to(
+        &acc.token_program,
+        &acc.token_mint,
+        &acc.destination_token_account,
+        &acc.collection_mint,
+        signer_seeds,
     )?;
 
-    metadata::create_metadata_accounts_v3(
-        CpiContext::new_with_signer(
-            acc.token_metadata_program.to_account_info(),
-            metadata::CreateMetadataAccountsV3 {
-                metadata: acc.metadata_account.to_account_info(),
-                mint: acc.token_mint.to_account_info(),
-                mint_authority: acc.collection_mint.to_account_info(),
-                payer: acc.authority.to_account_info(),
-                update_authority: acc.collection_mint.to_account_info(),
-                system_program: acc.system_program.to_account_info(),
-                rent: acc.rent.to_account_info(),
-            },
-            signer_seeds,
-        ),
-        DataV2 {
-            // TODO (fran): get from collection_metadata_account [?]
-            name: format!("{} #{}", name, acc.event.current_nft_count),
-            symbol,
-            uri,
-            seller_fee_basis_points: 0, // TODO (fran): CHECK
-            collection: Some(Collection {
-                key: acc.collection_mint.key(),
-                verified: false, // will be verified then (set_and_verify_sized_collection_item)
-            }),
-            creators: Some(vec![Creator {
-                address: acc.collection_mint.key(),
-                verified: true,
-                share: 100,
-            }]),
-            uses: None,
-        },
+    // TODO (fran): get from collection_metadata_account [?]
+    let name = format!("{} #{}", name, acc.event.current_nft_count);
+
+    create_metadata_accounts(
+        &acc.token_metadata_program,
+        &acc.metadata_account,
+        &acc.token_mint,
+        &acc.collection_mint,
+        &acc.authority,
+        &acc.system_program,
+        &acc.rent,
+        signer_seeds,
+        name,
+        symbol,
+        uri,
+        0,
+        Some(Collection {
+            key: acc.collection_mint.key(),
+            verified: false, // will be verified then (set_and_verify_sized_collection_item)
+        }),
         true,
-        false,
         None,
     )?;
 
-    metadata::create_master_edition_v3(
-        CpiContext::new_with_signer(
-            acc.token_metadata_program.to_account_info(),
-            metadata::CreateMasterEditionV3 {
-                edition: acc.edition_account.to_account_info(),
-                mint: acc.token_mint.to_account_info(),
-                update_authority: acc.collection_mint.to_account_info(),
-                mint_authority: acc.collection_mint.to_account_info(),
-                payer: acc.authority.to_account_info(),
-                metadata: acc.metadata_account.to_account_info(),
-                token_program: acc.token_program.to_account_info(),
-                system_program: acc.system_program.to_account_info(),
-                rent: acc.rent.to_account_info(),
-            },
-            signer_seeds,
-        ),
-        Some(0),
+    create_master_edition(
+        &acc.token_metadata_program,
+        &acc.edition_account,
+        &acc.token_mint,
+        &acc.collection_mint,
+        &acc.authority,
+        &acc.metadata_account,
+        &acc.token_program,
+        &acc.system_program,
+        &acc.rent,
+        signer_seeds,
     )?;
 
     metadata::set_and_verify_sized_collection_item(

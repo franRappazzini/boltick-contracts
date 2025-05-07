@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { ComputeBudgetProgram, Transaction } from "@solana/web3.js";
+import { ComputeBudgetProgram, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 
 import { Boltick } from "../target/types/boltick";
 import { Program } from "@coral-xyz/anchor";
@@ -43,6 +43,16 @@ describe("boltick", () => {
     program.programId
   );
   console.log("Config PDA address:", configPda.toBase58());
+
+  before(async () => {
+    // Airdrop SOL to the random keypair
+    const signature = await connection.requestAirdrop(
+      randomKeypair.publicKey,
+      2 * LAMPORTS_PER_SOL
+    );
+
+    console.log("Airdrop signature:", signature);
+  });
 
   it("Should initialize Config Account!", async () => {
     // Add your test here.
@@ -113,7 +123,6 @@ describe("boltick", () => {
     tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
 
     const signature = await provider.sendAndConfirm(tx, [wallet.payer]);
-
     console.log("Mint token tx signature:", signature);
 
     // fetch the event account to check the currentNftCount and to fetch nft address
@@ -141,9 +150,6 @@ describe("boltick", () => {
     expect(eventAccount.currentNftCount.toNumber()).to.equal(1);
     expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
   });
-
-  // TODO (fran)
-  // it("Should fail minting a token with another signer!", async () => {});
 });
 
 function bn(n: number) {

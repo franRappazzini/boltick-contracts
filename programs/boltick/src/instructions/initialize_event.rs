@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{metadata::{self, mpl_token_metadata::types::{Creator, DataV2}, Metadata}, token_interface::{self, Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{metadata::{self, mpl_token_metadata::types::CollectionDetails, Metadata}, token_interface::{Mint, TokenAccount, TokenInterface}};
 
 use crate::{Config, Event, ANCHOR_DISCRIMINATOR, SEED_COLLECTION_MINT, SEED_COLLECTION_TOKEN_ACCOUNT, SEED_CONFIG, SEED_EVENT};
+
+use super::{create_master_edition, create_metadata_accounts, mint_to};
 
 #[derive(Accounts)]
 pub struct InitializeEvent<'info> {
@@ -88,7 +90,7 @@ pub fn process_initialize_event(
     event_description: String,
 ) -> Result<()> {
     let acc = &ctx.accounts;
-    let event_count = acc.config.event_count.to_le_bytes();
+    let event_count: [u8; 8] = acc.config.event_count.to_le_bytes();
 
     let signer_seeds : &[&[&[u8]]] = &[&[
         SEED_COLLECTION_MINT,
@@ -97,72 +99,45 @@ pub fn process_initialize_event(
     ]];
 
     // mint collection
-    token_interface::mint_to(
-        CpiContext::new_with_signer(
-            acc.token_program.to_account_info(),
-            token_interface::MintTo {
-                mint: acc.collection_mint.to_account_info(),
-                to: acc.collection_token_account.to_account_info(),
-                authority: acc.collection_mint.to_account_info()
-            },
-            signer_seeds
-        ),
-        1 
+    mint_to(
+        &acc.token_program,
+        &acc.collection_mint,
+        &acc.collection_token_account,
+        &acc.collection_mint,
+        signer_seeds
     )?;
-
+    
     // create metadata
-    metadata::create_metadata_accounts_v3(
-        CpiContext::new_with_signer(
-            acc.token_metadata_program.to_account_info(),
-            metadata::CreateMetadataAccountsV3 {
-                metadata: acc.metadata_account.to_account_info(),
-                mint: acc.collection_mint.to_account_info(),
-                mint_authority: acc.collection_mint.to_account_info(),
-                payer: acc.creator.to_account_info(),
-                update_authority: acc.collection_mint.to_account_info(),
-                system_program: acc.system_program.to_account_info(),
-                rent: acc.rent.to_account_info()
-            },
-            signer_seeds
-        ),
-        DataV2 {
-            name: name.clone(),
-            symbol,
-            uri,
-            seller_fee_basis_points: 0,
-            creators: Some(vec![ // TODO (fran): CHECK
-                Creator {
-                    address: acc.collection_mint.key(),
-                    verified: true,
-                    share: 100,
-                },
-            ]),
-            collection: None,
-            uses: None
-        },
+    create_metadata_accounts(
+        &acc.token_metadata_program,
+        &acc.metadata_account,
+        &acc.collection_mint,
+        &acc.collection_mint,
+        &acc.creator,
+        &acc.system_program,
+        &acc.rent,
+        signer_seeds,
+        name.clone(),
+        symbol,
+        uri,
+        0,
+        None,
         false,
-        false,
-        Some(metadata::mpl_token_metadata::types::CollectionDetails::V1 { size: 0 })
+        Some(CollectionDetails::V1 { size: 0 })
     )?;
-
+    
     // create master edition
-    metadata::create_master_edition_v3(
-        CpiContext::new_with_signer(
-            acc.token_metadata_program.to_account_info(),
-            metadata::CreateMasterEditionV3 {
-                edition: acc.edition_account.to_account_info(),
-                mint: acc.collection_mint.to_account_info(),
-                update_authority: acc.collection_mint.to_account_info(),
-                mint_authority: acc.collection_mint.to_account_info(),
-                payer: acc.creator.to_account_info(),
-                metadata: acc.metadata_account.to_account_info(),
-                token_program: acc.token_program.to_account_info(),
-                system_program: acc.system_program.to_account_info(),
-                rent: acc.rent.to_account_info() 
-            },
-            signer_seeds
-        ),
-        Some(0)
+    create_master_edition(
+        &acc.token_metadata_program,
+        &acc.edition_account,
+        &acc.collection_mint,
+        &acc.collection_mint,
+        &acc.creator,
+        &acc.metadata_account,
+        &acc.token_program,
+        &acc.system_program,
+        &acc.rent,
+        signer_seeds
     )?;
 
     // verify collection metadata 
