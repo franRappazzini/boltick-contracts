@@ -16,3 +16,6 @@ pub const SEED_COLLECTION_MINT: &[u8] = b"collection_mint";
 
 #[constant]
 pub const SEED_COLLECTION_TOKEN_ACCOUNT: &[u8] = b"collection_token_account";
+
+#[constant]
+pub const SEED_TOKEN_MINT: &[u8] = b"token_mint";

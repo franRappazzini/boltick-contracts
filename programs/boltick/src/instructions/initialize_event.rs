@@ -179,6 +179,7 @@ pub fn process_initialize_event(
     ctx.accounts.event.set_inner(Event {
         creator: acc.creator.key(),
         collection_mint_account: acc.collection_mint.key(),
+        current_nft_count: 0,
         date: Clock::get()?.unix_timestamp,
         name,
         description: event_description

@@ -27,4 +27,14 @@ pub mod boltick {
     ) -> Result<()> {
         process_initialize_event(ctx, name, symbol, uri, event_description)
     }
+
+    pub fn mint_token(
+        ctx: Context<MintToken>,
+        event_id: u64,
+        name: String,
+        symbol: String,
+        uri: String,
+    ) -> Result<()> {
+        process_mint_token(ctx, event_id, name, symbol, uri)
+    }
 }

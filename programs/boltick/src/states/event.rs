@@ -5,6 +5,7 @@ use anchor_lang::prelude::*;
 pub struct Event {
     pub creator: Pubkey,
     pub collection_mint_account: Pubkey,
+    pub current_nft_count: u64,
     pub date: i64,
     #[max_len(24)]
     pub name: String,
