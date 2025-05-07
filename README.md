@@ -54,7 +54,7 @@ All with a user-friendly experience that requires zero blockchain knowledge from
     solana-test-validator --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s metadata.so --reset
    ```
 
-4. Deploy to devnet:
+4. Deploy to localnet:
 
    ```bash
    anchor deploy
