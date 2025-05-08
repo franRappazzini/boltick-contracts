@@ -113,3 +113,30 @@ pub fn create_master_edition<'info>(
         Some(0),
     )
 }
+
+pub fn set_and_verify_sized_collection_item<'info>(
+    metadata_program: &Program<'info, Metadata>,
+    metadata_account: &UncheckedAccount<'info>,
+    payer: &Signer<'info>,
+    collection_mint: &InterfaceAccount<'info, Mint>,
+    collection_metadata: &UncheckedAccount<'info>,
+    collection_master_edition: &UncheckedAccount<'info>,
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    metadata::set_and_verify_sized_collection_item(
+        CpiContext::new_with_signer(
+            metadata_program.to_account_info(),
+            metadata::SetAndVerifySizedCollectionItem {
+                metadata: metadata_account.to_account_info(),
+                collection_authority: collection_mint.to_account_info(),
+                payer: payer.to_account_info(),
+                update_authority: collection_mint.to_account_info(),
+                collection_mint: collection_mint.to_account_info(),
+                collection_metadata: collection_metadata.to_account_info(),
+                collection_master_edition: collection_master_edition.to_account_info(),
+            },
+            signer_seeds,
+        ),
+        None,
+    )
+}

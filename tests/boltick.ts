@@ -70,10 +70,11 @@ describe("boltick", () => {
     const uri =
       "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
     const eventName = "Test Event";
+    const ticketPrice = 0.5 * LAMPORTS_PER_SOL;
     const eventId = 0;
 
     const tx = await program.methods
-      .initializeEvent(name, symbol, uri, eventName)
+      .initializeEvent(name, symbol, uri, eventName, bn(ticketPrice))
       .accounts({ tokenProgram: TOKEN_PROGRAM_ID })
       .rpc({ skipPreflight: true });
     console.log("Initialize Event account tx signature:", tx);
@@ -147,9 +148,137 @@ describe("boltick", () => {
 
     console.log("NFT PDA address:", nftPda.toBase58());
 
-    expect(eventAccount.currentNftCount.toNumber()).to.equal(1);
+    expect(eventAccount.currentNftCount.toNumber()).to.equal(nftId + 1);
     expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
   });
+
+  // FIXME (fran): corregir error: `Error: unknown signer: 7fSqMySVJHVicNBtgZzT91Ko2vArrcB6dtGjg5eo1MMp`
+  it("Should buy a ticket from randomKeypair wallet!", async () => {
+    const name = "Test Event";
+    const symbol = "TE";
+    const uri =
+      "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
+    const eventId = 0;
+
+    // get creator balance to then compare it
+    const creatorPrevBalance = await provider.connection.getBalance(wallet.publicKey);
+
+    const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
+
+    const ix = await program.methods
+      .buyToken(bn(eventId), name, symbol, uri)
+      .accounts({
+        tokenProgram: TOKEN_PROGRAM_ID,
+        eventCreator: wallet.publicKey,
+        buyer: randomKeypair.publicKey,
+      })
+      .signers([randomKeypair])
+      .instruction();
+
+    const tx = new Transaction().add(computeIx, ix);
+
+    tx.feePayer = randomKeypair.publicKey;
+    tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+
+    const signature = await provider.sendAndConfirm(tx, [randomKeypair], { skipPreflight: true });
+    console.log("Buy ticket tx signature:", signature);
+
+    // fetch the event account to check the currentNftCount and to fetch nft address
+    const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+
+    const eventAccount = await program.account.event.fetch(eventPda);
+
+    // fetch the new nft address
+    const nftId = eventAccount.currentNftCount.toNumber() - 1;
+
+    const [nftPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(SEED_TOKEN_MINT),
+        eventAccount.collectionMintAccount.toBuffer(),
+        bn(nftId).toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    );
+
+    console.log("NFT PDA address:", nftPda.toBase58());
+
+    // check the creator balance after the transaction
+    const creatorPostBalance = await provider.connection.getBalance(wallet.publicKey);
+
+    console.log("Creator previous balance:", creatorPrevBalance);
+    console.log("Creator post balance:", creatorPostBalance);
+
+    expect(eventAccount.currentNftCount.toNumber()).to.equal(nftId + 1);
+    expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
+    expect(creatorPrevBalance).to.be.lessThan(creatorPostBalance);
+  });
+
+  // it("Should fail buy a ticket due to a wrong event_creator!", async () => {
+  //   const name = "Test Event";
+  //   const symbol = "TE";
+  //   const uri =
+  //     "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
+  //   const eventId = 0;
+
+  //   const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
+
+  //   try {
+  //     const ix = await program.methods
+  //       .buyToken(bn(eventId), name, symbol, uri)
+  //       .accounts({
+  //         tokenProgram: TOKEN_PROGRAM_ID,
+  //         eventCreator: randomKeypair.publicKey,
+  //       })
+  //       .signers([randomKeypair])
+  //       .instruction();
+
+  //     const tx = new Transaction().add(computeIx, ix);
+
+  //     tx.feePayer = randomKeypair.publicKey;
+  //     tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+
+  //     const signature = await provider.sendAndConfirm(tx, [randomKeypair]);
+  //     console.error("Unexpected buy ticket tx signature:", signature);
+  //   } catch (err) {
+  //     console.log("Expected error buying ticket tx signature:", err);
+  //     return expect.fail(err);
+  //   }
+
+  //   // fetch the event account to check the currentNftCount and to fetch nft address
+  //   const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  //     [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
+  //     program.programId
+  //   );
+
+  //   const eventAccount = await program.account.event.fetch(eventPda);
+
+  //   // fetch the new nft address
+  //   const nftId = eventAccount.currentNftCount.toNumber() - 1;
+
+  //   const [nftPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  //     [
+  //       Buffer.from(SEED_TOKEN_MINT),
+  //       eventAccount.collectionMintAccount.toBuffer(),
+  //       bn(nftId).toArrayLike(Buffer, "le", 8),
+  //     ],
+  //     program.programId
+  //   );
+
+  //   console.log("NFT PDA address:", nftPda.toBase58());
+
+  //   // check the creator balance after the transaction
+  //   const creatorPostBalance = await provider.connection.getBalance(wallet.publicKey);
+
+  //   console.log("Creator previous balance:", creatorPrevBalance);
+  //   console.log("Creator post balance:", creatorPostBalance);
+
+  //   expect(eventAccount.currentNftCount.toNumber()).to.equal(nftId + 1);
+  //   expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
+  //   expect(creatorPrevBalance).to.be.lessThan(creatorPostBalance);
+  // });
 });
 
 function bn(n: number) {

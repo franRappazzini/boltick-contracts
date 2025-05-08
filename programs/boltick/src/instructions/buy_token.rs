@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, system_program};
 use anchor_spl::{
     associated_token::AssociatedToken,
     metadata::{mpl_token_metadata::types::Collection, Metadata},
@@ -7,23 +7,17 @@ use anchor_spl::{
 
 use crate::{Config, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT};
 
-use super::{
-    create_master_edition, create_metadata_accounts, mint_to, set_and_verify_sized_collection_item,
-};
+use super::{create_master_edition, create_metadata_accounts, mint_to, set_and_verify_sized_collection_item};
 
 #[derive(Accounts)]
 #[instruction(event_id: u64)]
-pub struct MintToken<'info> {
+pub struct BuyToken<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(mut)]
-    pub destination: SystemAccount<'info>,
+    pub buyer: Signer<'info>,
 
     #[account(
         seeds = [SEED_CONFIG],
         bump = config.bump,
-        has_one = authority
     )]
     pub config: Account<'info, Config>,
 
@@ -31,30 +25,44 @@ pub struct MintToken<'info> {
         mut,
         seeds = [SEED_EVENT, event_id.to_le_bytes().as_ref()],
         bump,
-        constraint = event.collection_mint_account == collection_mint.key()
+        constraint = event.collection_mint_account == collection_mint.key(),
     )]
     pub event: Account<'info, Event>,
 
+    #[account(mut, address = event.creator)]
+    pub event_creator: SystemAccount<'info>,
+
+    // #[account(
+    //     mut,
+    //     seeds = [SEED_TREASURY],
+    //     bump = config.treasury_bump
+    // )]
+    // pub treasury: SystemAccount<'info>,
+
     #[account(
         init,
-        payer = authority,
+        payer = buyer,
         mint::decimals = 0,
         mint::authority = collection_mint,
         mint::freeze_authority = collection_mint,
         mint::token_program = token_program,
-        seeds = [SEED_TOKEN_MINT, collection_mint.key().as_ref(), event.current_nft_count.to_le_bytes().as_ref()],
+        seeds = [
+            SEED_TOKEN_MINT,
+            collection_mint.key().as_ref(),
+            event.current_nft_count.to_le_bytes().as_ref()
+        ],
         bump
     )]
     pub token_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         init_if_needed,
-        payer = authority,
+        payer = buyer,
         associated_token::mint = token_mint,
-        associated_token::authority = destination,
-        associated_token::token_program = token_program
+        associated_token::authority = buyer, 
+        associated_token::token_program = token_program,
     )]
-    pub destination_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -124,38 +132,48 @@ pub struct MintToken<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn process_mint_token(
-    ctx: Context<MintToken>,
+pub fn process_buy_token(
+    ctx: Context<BuyToken>,
     event_id: u64,
     name: String,
     symbol: String,
-    uri: String,
+    uri: String
 ) -> Result<()> {
     let acc = &ctx.accounts;
+
+    // transfer SOL to event creator
+    system_program::transfer(
+        CpiContext::new(
+            acc.system_program.to_account_info(),
+            system_program::Transfer {
+                from: acc.buyer.to_account_info(),
+                // to: acc.treasury.to_account_info()
+                to: acc.event_creator.to_account_info()
+            }
+        ),
+        acc.event.ticket_price
+    )?;
 
     let signer_seeds: &[&[&[u8]]] = &[&[
         SEED_COLLECTION_MINT,
         &event_id.to_le_bytes(),
-        &[ctx.bumps.collection_mint],
+        &[ctx.bumps.collection_mint]
     ]];
 
     mint_to(
         &acc.token_program,
         &acc.token_mint,
-        &acc.destination_token_account,
+        &acc.buyer_token_account,
         &acc.collection_mint,
-        signer_seeds,
+        signer_seeds
     )?;
-
-    // TODO (fran): get from collection_metadata_account [?]
-    let name = format!("{} #{}", name, acc.event.current_nft_count);
 
     create_metadata_accounts(
         &acc.token_metadata_program,
         &acc.metadata_account,
         &acc.token_mint,
         &acc.collection_mint,
-        &acc.authority,
+        &acc.buyer,
         &acc.system_program,
         &acc.rent,
         signer_seeds,
@@ -163,12 +181,9 @@ pub fn process_mint_token(
         symbol,
         uri,
         0,
-        Some(Collection {
-            key: acc.collection_mint.key(),
-            verified: false, // will be verified then (set_and_verify_sized_collection_item)
-        }),
+        Some(Collection{ key: acc.collection_mint.key(), verified: false }),
         true,
-        None,
+        None
     )?;
 
     create_master_edition(
@@ -176,22 +191,22 @@ pub fn process_mint_token(
         &acc.edition_account,
         &acc.token_mint,
         &acc.collection_mint,
-        &acc.authority,
+        &acc.buyer,
         &acc.metadata_account,
         &acc.token_program,
         &acc.system_program,
         &acc.rent,
-        signer_seeds,
+        signer_seeds
     )?;
 
     set_and_verify_sized_collection_item(
         &acc.token_metadata_program,
         &acc.metadata_account,
-        &acc.authority,
+        &acc.buyer,
         &acc.collection_mint,
         &acc.collection_metadata_account,
         &acc.collection_master_edition,
-        signer_seeds,
+        signer_seeds
     )?;
 
     ctx.accounts.event.current_nft_count += 1;

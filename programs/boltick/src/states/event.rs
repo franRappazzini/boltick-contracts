@@ -7,6 +7,7 @@ pub struct Event {
     pub collection_mint_account: Pubkey,
     pub current_nft_count: u64,
     pub date: i64,
+    pub ticket_price: u64,
     #[max_len(24)]
     pub name: String,
     #[max_len(80)]

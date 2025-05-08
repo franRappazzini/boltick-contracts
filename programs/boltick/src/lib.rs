@@ -24,8 +24,9 @@ pub mod boltick {
         symbol: String,
         uri: String,
         event_description: String,
+        ticket_price: u64,
     ) -> Result<()> {
-        process_initialize_event(ctx, name, symbol, uri, event_description)
+        process_initialize_event(ctx, name, symbol, uri, event_description, ticket_price)
     }
 
     pub fn mint_token(
@@ -36,5 +37,15 @@ pub mod boltick {
         uri: String,
     ) -> Result<()> {
         process_mint_token(ctx, event_id, name, symbol, uri)
+    }
+
+    pub fn buy_token(
+        ctx: Context<BuyToken>,
+        event_id: u64,
+        name: String,
+        symbol: String,
+        uri: String,
+    ) -> Result<()> {
+        process_buy_token(ctx, event_id, name, symbol, uri)
     }
 }

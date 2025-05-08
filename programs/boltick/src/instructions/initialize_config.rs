@@ -16,13 +16,12 @@ pub struct InitializeConfig<'info> {
     )]
     pub config: Account<'info, Config>,
 
-    /// CHECK: this is a PDA treasury, no data needed
     #[account(
         mut,
         seeds = [SEED_TREASURY],
         bump
     )]
-    pub treasury: UncheckedAccount<'info>,
+    pub treasury: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
