@@ -1,0 +1,16 @@
+{
+  "name": "Test Event",
+  "symbol": "TE",
+  "description": "This will be a nice event!",
+  "image": "https://img-cdn.magiceden.dev/rs:fill:800:0:0/plain/https%3A%2F%2Ffamousfoxes.com%2Fhd%2F8755.png",
+  "attributes": [
+    {
+      "trait_type": "used",
+      "value": true
+    },
+    {
+      "trait_type": "expired",
+      "value": false
+    }
+  ]
+}
