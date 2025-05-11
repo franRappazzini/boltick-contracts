@@ -6,6 +6,7 @@ import { Boltick } from "../target/types/boltick";
 import { Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { expect } from "chai";
+import { getMetadataAccountDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
 
 const SEED_CONFIG = "config";
 const SEED_TREASURY = "treasury";
@@ -68,7 +69,7 @@ describe("boltick", () => {
     const name = "Test Event";
     const symbol = "TE";
     const uri =
-      "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
+      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
     const eventName = "Test Event";
     const ticketPrice = 0.5 * LAMPORTS_PER_SOL;
     const eventId = 0;
@@ -104,7 +105,7 @@ describe("boltick", () => {
     const name = "Test Event";
     const symbol = "TE";
     const uri =
-      "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
+      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
     const eventId = 0;
 
     // create instruction to set compute unit limit
@@ -156,7 +157,7 @@ describe("boltick", () => {
     const name = "Test Event";
     const symbol = "TE";
     const uri =
-      "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
+      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
     const eventId = 0;
 
     // get creator balance to then compare it
@@ -219,7 +220,7 @@ describe("boltick", () => {
     const name = "Test Event";
     const symbol = "TE";
     const uri =
-      "https://raw.githubusercontent.com/franRappazzini/algorithmic-stablecoin/main/uri.json";
+      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
     const eventId = 0;
 
     const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
@@ -252,6 +253,25 @@ describe("boltick", () => {
       console.log("Expected error buying ticket tx signature:", err?.signature);
       return expect(err).to.be.instanceOf(Error);
     }
+  });
+
+  it("Should update token metadata!", async () => {
+    const name = "Test Event";
+    const symbol = "TE";
+    const uri =
+      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test-update.json";
+    const eventId = 0;
+    const nftId = 0;
+
+    // 15' to wait for the transaction to check old metadata in explorer
+    setTimeout(async () => {
+      const tx = await program.methods
+        .updateTokenMetadata(bn(eventId), bn(nftId), name, symbol, uri)
+        // .accounts({})
+        .rpc({ skipPreflight: true });
+
+      console.log("Update token metadata tx signature:", tx);
+    }, 15000);
   });
 });
 
