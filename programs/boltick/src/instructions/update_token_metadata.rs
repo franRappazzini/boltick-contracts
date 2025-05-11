@@ -11,7 +11,7 @@ use anchor_spl::{
 use crate::{Config, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT};
 
 #[derive(Accounts)]
-#[instruction(event_id: u64, token_id: u64)]
+#[instruction(event_id: u64, token_id: u64, /* digital_access_id: u8 */)]
 pub struct UpdateTokenMetadata<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -30,6 +30,16 @@ pub struct UpdateTokenMetadata<'info> {
     )]
     pub event: Account<'info, Event>,
 
+    // // TODO (fran): to update uri
+    // #[account(
+    //     seeds = [
+    //         SEED_DIGITAL_ACCESS,
+    //         event.key().as_ref(),
+    //         digital_access_id.to_le_bytes().as_ref()
+    //     ],
+    //     bump,
+    // )]
+    // pub digital_access: Account<'info, DigitalAccess>,
     #[account(
         mut,
         seeds = [SEED_TOKEN_MINT, collection_mint.key().as_ref(), token_id.to_le_bytes().as_ref()],

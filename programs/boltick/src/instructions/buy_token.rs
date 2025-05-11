@@ -5,12 +5,12 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-use crate::{Config, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT};
+use crate::{Config, DigitalAccess, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_DIGITAL_ACCESS, SEED_EVENT, SEED_TOKEN_MINT};
 
 use super::{create_master_edition, create_metadata_accounts, mint_to, set_and_verify_sized_collection_item};
 
 #[derive(Accounts)]
-#[instruction(event_id: u64)]
+#[instruction(event_id: u64, digital_access_id: u8)]
 pub struct BuyToken<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
@@ -31,6 +31,19 @@ pub struct BuyToken<'info> {
 
     #[account(mut, address = event.creator)]
     pub event_creator: SystemAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            SEED_DIGITAL_ACCESS,
+            event.key().as_ref(),
+            digital_access_id.to_le_bytes().as_ref()
+        ],
+        bump,
+        has_one = event,
+        constraint = digital_access.max_supply > digital_access.current_minted
+    )]
+    pub digital_access: Account<'info, DigitalAccess>,
 
     // #[account(
     //     mut,
@@ -132,13 +145,7 @@ pub struct BuyToken<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn process_buy_token(
-    ctx: Context<BuyToken>,
-    event_id: u64,
-    name: String,
-    symbol: String,
-    uri: String
-) -> Result<()> {
+pub fn process_buy_token(ctx: Context<BuyToken>, event_id: u64, _digital_access_id: u8) -> Result<()> {
     let acc = &ctx.accounts;
 
     // transfer SOL to event creator
@@ -151,7 +158,7 @@ pub fn process_buy_token(
                 to: acc.event_creator.to_account_info()
             }
         ),
-        acc.event.ticket_price
+        acc.digital_access.price
     )?;
 
     let signer_seeds: &[&[&[u8]]] = &[&[
@@ -177,9 +184,9 @@ pub fn process_buy_token(
         &acc.system_program,
         &acc.rent,
         signer_seeds,
-        name,
-        symbol,
-        uri,
+        acc.digital_access.name.clone(),
+        acc.digital_access.symbol.clone(),
+        acc.digital_access.uri.clone(),
         0,
         Some(Collection{ key: acc.collection_mint.key(), verified: false }),
         true,
@@ -210,6 +217,7 @@ pub fn process_buy_token(
     )?;
 
     ctx.accounts.event.current_nft_count += 1;
+    ctx.accounts.digital_access.current_minted += 1;
 
     Ok(())
 }

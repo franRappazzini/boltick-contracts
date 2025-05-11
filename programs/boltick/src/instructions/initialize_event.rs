@@ -87,8 +87,7 @@ pub fn process_initialize_event(
     name: String,
     symbol: String,
     uri: String,
-    event_description: String,
-    ticket_price: u64
+    event_description: String
 ) -> Result<()> {
     let acc = &ctx.accounts;
     let event_count: [u8; 8] = acc.config.event_count.to_le_bytes();
@@ -156,10 +155,10 @@ pub fn process_initialize_event(
         creator: acc.creator.key(),
         collection_mint_account: acc.collection_mint.key(),
         current_nft_count: 0,
+        current_digital_access_count: 0,
         date: Clock::get()?.unix_timestamp,
         name,
         description: event_description,
-        ticket_price
     });
     
     ctx.accounts.config.event_count += 1;

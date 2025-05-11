@@ -24,29 +24,38 @@ pub mod boltick {
         symbol: String,
         uri: String,
         event_description: String,
-        ticket_price: u64,
     ) -> Result<()> {
-        process_initialize_event(ctx, name, symbol, uri, event_description, ticket_price)
+        process_initialize_event(ctx, name, symbol, uri, event_description)
     }
 
-    pub fn mint_token(
-        ctx: Context<MintToken>,
+    pub fn add_digital_access(
+        ctx: Context<AddDigitalAccess>,
         event_id: u64,
+        price: u64,
+        max_supply: u64,
         name: String,
         symbol: String,
+        description: String,
         uri: String,
     ) -> Result<()> {
-        process_mint_token(ctx, event_id, name, symbol, uri)
+        process_add_digital_access(
+            ctx,
+            event_id,
+            price,
+            max_supply,
+            name,
+            symbol,
+            description,
+            uri,
+        )
     }
 
-    pub fn buy_token(
-        ctx: Context<BuyToken>,
-        event_id: u64,
-        name: String,
-        symbol: String,
-        uri: String,
-    ) -> Result<()> {
-        process_buy_token(ctx, event_id, name, symbol, uri)
+    pub fn mint_token(ctx: Context<MintToken>, event_id: u64, digital_access_id: u8) -> Result<()> {
+        process_mint_token(ctx, event_id, digital_access_id)
+    }
+
+    pub fn buy_token(ctx: Context<BuyToken>, event_id: u64, digital_access_id: u8) -> Result<()> {
+        process_buy_token(ctx, event_id, digital_access_id)
     }
 
     pub fn update_token_metadata(

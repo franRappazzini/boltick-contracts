@@ -6,13 +6,13 @@ import { Boltick } from "../target/types/boltick";
 import { Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { expect } from "chai";
-import { getMetadataAccountDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
 
 const SEED_CONFIG = "config";
 const SEED_TREASURY = "treasury";
 const SEED_EVENT = "event";
 const SEED_COLLECTION_MINT = "collection_mint";
 const SEED_TOKEN_MINT = "token_mint";
+const SEED_DIGITAL_ACCESS = "digital_access";
 const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" // devnet and mainnet
 );
@@ -71,11 +71,10 @@ describe("boltick", () => {
     const uri =
       "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
     const eventName = "Test Event";
-    const ticketPrice = 0.5 * LAMPORTS_PER_SOL;
     const eventId = 0;
 
     const tx = await program.methods
-      .initializeEvent(name, symbol, uri, eventName, bn(ticketPrice))
+      .initializeEvent(name, symbol, uri, eventName)
       .accounts({ tokenProgram: TOKEN_PROGRAM_ID })
       .rpc({ skipPreflight: true });
     console.log("Initialize Event account tx signature:", tx);
@@ -101,18 +100,61 @@ describe("boltick", () => {
     expect(configAccount.eventCount.toNumber()).to.equal(eventId + 1);
   });
 
-  it("Should mint new token with the authority of Config account!", async () => {
-    const name = "Test Event";
-    const symbol = "TE";
+  it("Should create Digital Access types!", async () => {
+    const eventId = 0;
+    const price = 0.2 * LAMPORTS_PER_SOL;
+    const max_supply = 1;
+    const name = "VIP Access";
+    const symbol = "VIP";
+    const description = "VIP Access to the event";
     const uri =
       "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
+
+    const tx = await program.methods
+      .addDigitalAccess(bn(eventId), bn(price), bn(max_supply), name, symbol, description, uri)
+      .rpc();
+    console.log("Add VIP Digital Access tx signature:", tx);
+
+    const price2 = 0.1 * LAMPORTS_PER_SOL;
+    const max_supply2 = 3;
+    const name2 = "General Access";
+    const symbol2 = "GA";
+    const description2 = "General Access to the event";
+
+    const tx2 = await program.methods
+      .addDigitalAccess(bn(eventId), bn(price2), bn(max_supply2), name2, symbol2, description2, uri)
+      .rpc();
+    console.log("Add GA Digital Access tx signature:", tx2);
+
+    const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const eventAccount = await program.account.event.fetch(eventPda);
+
+    const digitalAccessAccounts = await program.account.digitalAccess.all([
+      {
+        memcmp: {
+          offset: 8,
+          bytes: eventPda.toBase58(),
+        },
+      },
+    ]);
+    console.log({ eventAccount });
+    digitalAccessAccounts.forEach((da) => console.log(da.account));
+
+    expect(eventAccount.currentDigitalAccessCount).to.equal(2);
+  });
+
+  it("Should mint new token with the authority of Config account!", async () => {
     const eventId = 0;
+    const digitalAccessId = 0;
 
     // create instruction to set compute unit limit
     const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
 
     const ix = await program.methods
-      .mintToken(bn(eventId), name, symbol, uri)
+      .mintToken(bn(eventId), digitalAccessId)
       .accounts({
         tokenProgram: TOKEN_PROGRAM_ID,
         destination: randomKeypair.publicKey,
@@ -132,7 +174,6 @@ describe("boltick", () => {
       [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
       program.programId
     );
-
     const eventAccount = await program.account.event.fetch(eventPda);
 
     // fetch the new nft address
@@ -153,12 +194,9 @@ describe("boltick", () => {
     expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
   });
 
-  it("Should buy a ticket from randomKeypair wallet!", async () => {
-    const name = "Test Event";
-    const symbol = "TE";
-    const uri =
-      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
+  it("Should buy a token from randomKeypair wallet!", async () => {
     const eventId = 0;
+    const digitalAccessId = 1;
 
     // get creator balance to then compare it
     const creatorPrevBalance = await provider.connection.getBalance(wallet.publicKey);
@@ -166,7 +204,7 @@ describe("boltick", () => {
     const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
 
     const ix = await program.methods
-      .buyToken(bn(eventId), name, symbol, uri)
+      .buyToken(bn(eventId), digitalAccessId)
       .accounts({
         tokenProgram: TOKEN_PROGRAM_ID,
         eventCreator: wallet.publicKey,
@@ -184,14 +222,13 @@ describe("boltick", () => {
       skipPreflight: true,
     });
     // const signature = await provider.sendAndConfirm(tx, [randomKeypair], { skipPreflight: true });
-    console.log("Buy ticket tx signature:", signature);
+    console.log("Buy token tx signature:", signature);
 
     // fetch the event account to check the currentNftCount and to fetch nft address
     const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
       program.programId
     );
-
     const eventAccount = await program.account.event.fetch(eventPda);
 
     // fetch the new nft address
@@ -216,18 +253,15 @@ describe("boltick", () => {
     expect(creatorPrevBalance).to.be.lessThan(creatorPostBalance);
   });
 
-  it("Should fail buy a ticket due to a wrong event_creator!", async () => {
-    const name = "Test Event";
-    const symbol = "TE";
-    const uri =
-      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test.json";
+  it("Should fail buy a token due to a wrong event_creator!", async () => {
     const eventId = 0;
+    const digitalAccessId = 1;
 
     const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
 
     try {
       const ix = await program.methods
-        .buyToken(bn(eventId), name, symbol, uri)
+        .buyToken(bn(eventId), digitalAccessId)
         .accounts({
           tokenProgram: TOKEN_PROGRAM_ID,
           eventCreator: randomKeypair.publicKey,
@@ -247,31 +281,74 @@ describe("boltick", () => {
         [randomKeypair],
         { skipPreflight: true }
       );
-      console.error("Unexpected buy ticket tx signature:", signature);
-      return expect.fail("Unexpected buy ticket tx signature:", signature);
+      console.error("Unexpected buy token tx signature:", signature);
+      return expect.fail("Unexpected buy token tx signature:", signature);
     } catch (err) {
-      console.log("Expected error buying ticket tx signature:", err?.signature);
+      console.log("Expected error buying token tx signature:", err?.signature);
+      return expect(err).to.be.instanceOf(Error);
+    }
+  });
+
+  it("Should fail mint a token due to limit exceeded!", async () => {
+    const eventId = 0;
+    const digitalAccessId = 0; // VIP Access = only 1 token (already minted in previous test)
+
+    try {
+      const ix = await program.methods
+        .mintToken(bn(eventId), digitalAccessId)
+        .accounts({
+          tokenProgram: TOKEN_PROGRAM_ID,
+          destination: randomKeypair.publicKey,
+        })
+        .instruction();
+
+      const tx = new Transaction().add(ix);
+
+      tx.feePayer = wallet.publicKey;
+      tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+
+      const signature = await provider.sendAndConfirm(tx, [wallet.payer], { skipPreflight: true });
+      console.error("Unexpected mint token tx signature:", signature);
+      return expect.fail("Unexpected mint token tx signature:", signature);
+    } catch (err) {
+      console.log("Expected error minting token:", err);
       return expect(err).to.be.instanceOf(Error);
     }
   });
 
   it("Should update token metadata!", async () => {
-    const name = "Test Event";
-    const symbol = "TE";
-    const uri =
-      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test-update.json";
     const eventId = 0;
     const nftId = 0;
 
-    // 15' to wait for the transaction to check old metadata in explorer
+    const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const [digitalAccessPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(SEED_DIGITAL_ACCESS), eventPda.toBuffer(), Uint8Array.from([nftId])],
+      program.programId
+    );
+
+    const digitalAccessAccount = await program.account.digitalAccess.fetch(digitalAccessPda);
+
+    const uri =
+      "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test-update.json";
+
+    // 10' to wait for the transaction to check old metadata in explorer
     setTimeout(async () => {
       const tx = await program.methods
-        .updateTokenMetadata(bn(eventId), bn(nftId), name, symbol, uri)
+        .updateTokenMetadata(
+          bn(eventId),
+          bn(nftId),
+          digitalAccessAccount.name,
+          digitalAccessAccount.symbol,
+          uri
+        )
         // .accounts({})
         .rpc({ skipPreflight: true });
 
       console.log("Update token metadata tx signature:", tx);
-    }, 15000);
+    }, 10000);
   });
 });
 
