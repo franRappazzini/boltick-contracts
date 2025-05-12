@@ -4,7 +4,9 @@ use anchor_spl::{
     token_interface::Mint,
 };
 
-use crate::{Config, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT};
+use crate::{
+    Config, DappError, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT,
+};
 
 #[derive(Accounts)]
 #[instruction(event_id: u64, token_id: u64, /* digital_access_id: u8 */)]
@@ -15,7 +17,7 @@ pub struct UpdateTokenMetadata<'info> {
     #[account(
         seeds = [SEED_CONFIG],
         bump = config.bump,
-        has_one = authority,
+        has_one = authority @ DappError::InvalidAuthority,
     )]
     pub config: Account<'info, Config>,
 
@@ -26,7 +28,7 @@ pub struct UpdateTokenMetadata<'info> {
     )]
     pub event: Account<'info, Event>,
 
-    // // TODO (fran): to update uri
+    // // TODO (fran): maybe to update uri
     // #[account(
     //     seeds = [
     //         SEED_DIGITAL_ACCESS,

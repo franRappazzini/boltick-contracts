@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 
-use crate::{DigitalAccess, Event, ANCHOR_DISCRIMINATOR, SEED_DIGITAL_ACCESS, SEED_EVENT};
+use crate::{
+    DappError, DigitalAccess, Event, ANCHOR_DISCRIMINATOR, SEED_DIGITAL_ACCESS, SEED_EVENT,
+};
 
 #[derive(Accounts)]
 #[instruction(event_id: u64)]
@@ -12,7 +14,7 @@ pub struct AddDigitalAccess<'info> {
         mut,
         seeds = [SEED_EVENT, event_id.to_le_bytes().as_ref()],
         bump,
-        has_one = creator
+        has_one = creator @ DappError::InvalidCreator,
     )]
     pub event: Account<'info, Event>,
 

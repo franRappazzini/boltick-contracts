@@ -5,7 +5,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-use crate::{Config, DigitalAccess, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_DIGITAL_ACCESS, SEED_EVENT, SEED_TOKEN_MINT};
+use crate::{Config, DappError, DigitalAccess, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_DIGITAL_ACCESS, SEED_EVENT, SEED_TOKEN_MINT};
 
 use super::{create_master_edition, create_metadata_accounts, mint_to, set_and_verify_sized_collection_item};
 
@@ -41,7 +41,7 @@ pub struct BuyToken<'info> {
         ],
         bump,
         has_one = event,
-        constraint = digital_access.max_supply > digital_access.current_minted
+        constraint = digital_access.max_supply > digital_access.current_minted @ DappError::MaxSupplyReached,
     )]
     pub digital_access: Account<'info, DigitalAccess>,
 

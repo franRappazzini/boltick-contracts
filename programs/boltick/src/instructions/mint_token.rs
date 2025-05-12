@@ -6,8 +6,8 @@ use anchor_spl::{
 };
 
 use crate::{
-    Config, DigitalAccess, Event, SEED_COLLECTION_MINT, SEED_CONFIG, SEED_DIGITAL_ACCESS,
-    SEED_EVENT, SEED_TOKEN_MINT,
+    Config, DappError, DigitalAccess, Event, SEED_COLLECTION_MINT, SEED_CONFIG,
+    SEED_DIGITAL_ACCESS, SEED_EVENT, SEED_TOKEN_MINT,
 };
 
 use super::{
@@ -26,7 +26,7 @@ pub struct MintToken<'info> {
     #[account(
         seeds = [SEED_CONFIG],
         bump = config.bump,
-        has_one = authority
+        has_one = authority @ DappError::InvalidAuthority
     )]
     pub config: Account<'info, Config>,
 
@@ -47,7 +47,7 @@ pub struct MintToken<'info> {
         ],
         bump,
         has_one = event,
-        constraint = digital_access.max_supply > digital_access.current_minted
+        constraint = digital_access.max_supply > digital_access.current_minted @ DappError::MaxSupplyReached
     )]
     pub digital_access: Account<'info, DigitalAccess>,
 

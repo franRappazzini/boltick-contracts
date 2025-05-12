@@ -1,10 +1,12 @@
 mod constants;
+mod errors;
 mod instructions;
 mod states;
 
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use errors::*;
 pub use instructions::*;
 pub use states::*;
 
