@@ -1,10 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    metadata::{
-        self,
-        mpl_token_metadata::types::{Collection, Creator, DataV2},
-        Metadata,
-    },
+    metadata::{self, mpl_token_metadata::types::DataV2, Metadata, MetadataAccount},
     token_interface::Mint,
 };
 
@@ -54,7 +50,6 @@ pub struct UpdateTokenMetadata<'info> {
     )]
     pub collection_mint: InterfaceAccount<'info, Mint>,
 
-    /// CHECK: Validate address by deriving pda
     #[account(
         mut,
         seeds = [
@@ -65,7 +60,7 @@ pub struct UpdateTokenMetadata<'info> {
         bump,
         seeds::program = token_metadata_program.key(),
     )]
-    pub metadata_account: UncheckedAccount<'info>,
+    pub metadata_account: Account<'info, MetadataAccount>,
 
     /// CHECK: Validate address by deriving pda
     #[account(
@@ -87,9 +82,7 @@ pub struct UpdateTokenMetadata<'info> {
 pub fn process_update_token_metadata(
     ctx: Context<UpdateTokenMetadata>,
     event_id: u64,
-    token_id: u64,
-    name: String,
-    symbol: String,
+    _token_id: u64,
     uri: String,
 ) -> Result<()> {
     let acc = &ctx.accounts;
@@ -99,35 +92,24 @@ pub fn process_update_token_metadata(
         &[ctx.bumps.collection_mint],
     ]];
 
-    // TODO (fran): check how to get metadata onchain
-    // let data = ctx.accounts.metadata_account.data.try_borrow().unwrap();
-    // let metadata_acc = MPLMetadata::safe_deserialize(data.as_ref())?;
-
     metadata::update_metadata_accounts_v2(
         CpiContext::new_with_signer(
-            ctx.accounts.token_metadata_program.to_account_info(),
+            acc.token_metadata_program.to_account_info(),
             metadata::UpdateMetadataAccountsV2 {
-                metadata: ctx.accounts.metadata_account.to_account_info(),
-                update_authority: ctx.accounts.collection_mint.to_account_info(),
+                metadata: acc.metadata_account.to_account_info(),
+                update_authority: acc.collection_mint.to_account_info(),
             },
             signer_seeds,
         ),
         None,
         Some(DataV2 {
-            name: format!("{} #{}", name, token_id),
-            symbol,
+            name: acc.metadata_account.name.clone(),
+            symbol: acc.metadata_account.symbol.clone(),
             uri,
-            seller_fee_basis_points: 0,
-            creators: Some(vec![Creator {
-                address: acc.collection_mint.key(),
-                verified: true,
-                share: 100,
-            }]),
-            collection: Some(Collection {
-                key: acc.collection_mint.key(),
-                verified: true,
-            }),
-            uses: None,
+            seller_fee_basis_points: acc.metadata_account.seller_fee_basis_points.clone(),
+            creators: acc.metadata_account.creators.clone(),
+            collection: acc.metadata_account.collection.clone(),
+            uses: acc.metadata_account.uses.clone(),
         }),
         None,
         Some(true),

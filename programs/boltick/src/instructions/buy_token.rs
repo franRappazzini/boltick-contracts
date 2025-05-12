@@ -184,7 +184,7 @@ pub fn process_buy_token(ctx: Context<BuyToken>, event_id: u64, _digital_access_
         &acc.system_program,
         &acc.rent,
         signer_seeds,
-        acc.digital_access.name.clone(),
+        format!("{} #{}", acc.digital_access.name, acc.event.current_nft_count),
         acc.digital_access.symbol.clone(),
         acc.digital_access.uri.clone(),
         0,

@@ -62,10 +62,8 @@ pub mod boltick {
         ctx: Context<UpdateTokenMetadata>,
         event_id: u64,
         token_id: u64,
-        name: String,
-        symbol: String,
         uri: String,
     ) -> Result<()> {
-        process_update_token_metadata(ctx, event_id, token_id, name, symbol, uri)
+        process_update_token_metadata(ctx, event_id, token_id, uri)
     }
 }

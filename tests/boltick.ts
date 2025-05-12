@@ -320,30 +320,13 @@ describe("boltick", () => {
     const eventId = 0;
     const nftId = 0;
 
-    const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
-      program.programId
-    );
-    const [digitalAccessPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(SEED_DIGITAL_ACCESS), eventPda.toBuffer(), Uint8Array.from([nftId])],
-      program.programId
-    );
-
-    const digitalAccessAccount = await program.account.digitalAccess.fetch(digitalAccessPda);
-
     const uri =
       "https://raw.githubusercontent.com/franRappazzini/boltick-contracts/main/tests/utils/uri-test-update.json";
 
     // 10' to wait for the transaction to check old metadata in explorer
     setTimeout(async () => {
       const tx = await program.methods
-        .updateTokenMetadata(
-          bn(eventId),
-          bn(nftId),
-          digitalAccessAccount.name,
-          digitalAccessAccount.symbol,
-          uri
-        )
+        .updateTokenMetadata(bn(eventId), bn(nftId), uri)
         // .accounts({})
         .rpc({ skipPreflight: true });
 
