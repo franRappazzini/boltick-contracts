@@ -161,7 +161,6 @@ pub fn process_mint_token(
         signer_seeds,
     )?;
 
-    // TODO (fran): get from collection_metadata_account [?]
     let name = format!(
         "{} #{}",
         acc.digital_access.name, acc.event.current_nft_count
