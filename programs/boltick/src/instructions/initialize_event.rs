@@ -159,6 +159,7 @@ pub fn process_initialize_event(
         date: Clock::get()?.unix_timestamp,
         name,
         description: event_description,
+        bump: ctx.bumps.event,
     });
     
     ctx.accounts.config.event_count += 1;

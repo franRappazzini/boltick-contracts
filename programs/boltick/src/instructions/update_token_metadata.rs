@@ -23,7 +23,7 @@ pub struct UpdateTokenMetadata<'info> {
 
     #[account(
         seeds = [SEED_EVENT, event_id.to_le_bytes().as_ref()],
-        bump,
+        bump = event.bump,
         constraint = event.collection_mint_account == collection_mint.key()
     )]
     pub event: Account<'info, Event>,
@@ -35,7 +35,7 @@ pub struct UpdateTokenMetadata<'info> {
     //         event.key().as_ref(),
     //         digital_access_id.to_le_bytes().as_ref()
     //     ],
-    //     bump,
+    //     bump = digital_access.bump,
     // )]
     // pub digital_access: Account<'info, DigitalAccess>,
     #[account(

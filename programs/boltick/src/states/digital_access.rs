@@ -9,6 +9,7 @@ pub struct DigitalAccess {
     // pub used: bool,
     pub max_supply: u64,
     pub current_minted: u64,
+    pub bump: u8,
     #[max_len(32)]
     pub name: String,
     #[max_len(8)]

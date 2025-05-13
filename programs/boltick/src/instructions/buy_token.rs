@@ -24,7 +24,7 @@ pub struct BuyToken<'info> {
     #[account(
         mut,
         seeds = [SEED_EVENT, event_id.to_le_bytes().as_ref()],
-        bump,
+        bump = event.bump,
         constraint = event.collection_mint_account == collection_mint.key(),
     )]
     pub event: Account<'info, Event>,
@@ -39,7 +39,7 @@ pub struct BuyToken<'info> {
             event.key().as_ref(),
             digital_access_id.to_le_bytes().as_ref()
         ],
-        bump,
+        bump = digital_access.bump,
         has_one = event,
         constraint = digital_access.max_supply > digital_access.current_minted @ DappError::MaxSupplyReached,
     )]

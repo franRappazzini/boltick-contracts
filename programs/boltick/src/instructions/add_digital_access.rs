@@ -13,7 +13,7 @@ pub struct AddDigitalAccess<'info> {
     #[account(
         mut,
         seeds = [SEED_EVENT, event_id.to_le_bytes().as_ref()],
-        bump,
+        bump = event.bump,
         has_one = creator @ DappError::InvalidCreator,
     )]
     pub event: Account<'info, Event>,
@@ -54,6 +54,7 @@ pub fn process_add_digital_access(
         symbol,
         description,
         uri,
+        bump: ctx.bumps.digital_access,
     });
 
     ctx.accounts.event.current_digital_access_count += 1;
