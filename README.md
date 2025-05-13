@@ -25,6 +25,10 @@ All with a user-friendly experience that requires zero blockchain knowledge from
 - `Anchor.toml`: Anchor project configuration.
 - `Cargo.toml`: Rust dependencies.
 
+## Auditware Radar audit
+
+<img src="https://img.shields.io/github/actions/workflow/status/franRappazzini/boltick-contracts/action.yaml">
+
 ## 🚀 Deployment
 
 ### Prerequisites
