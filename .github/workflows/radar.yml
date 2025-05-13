@@ -1,6 +1,25 @@
 name: Radar Static Analysis
 description: Solana static analysis of anchor rust programs using radar
-uses: Auditware/radar-action@0.1.1
-with:
-  path: "./programs"
-  ignore: "low"
+on: [push]
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run radar
+        id: radar
+        uses: Auditware/radar-action@0.1.1
+        with:
+          path: "./programs"
+          ignore: "low"
+
+branding:
+  icon: "git-pull-request"
+  color: "purple"
