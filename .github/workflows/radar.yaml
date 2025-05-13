@@ -1,5 +1,4 @@
 name: Radar Static Analysis
-description: Solana static analysis of anchor rust programs using radar
 on: [push]
 jobs:
   analyze:
@@ -12,14 +11,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
 
       - name: Run radar
         id: radar
-        uses: Auditware/radar-action@0.1.1
+        uses: auditware/radar-action@main
         with:
-          path: "./programs"
+          path: "."
           ignore: "low"
 
-branding:
-  icon: "git-pull-request"
-  color: "purple"
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: output.sarif
