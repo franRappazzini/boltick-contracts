@@ -27,7 +27,7 @@ All with a user-friendly experience that requires zero blockchain knowledge from
 
 ## Auditware Radar audit
 
-<img src="https://img.shields.io/github/actions/workflow/status/franRappazzini/boltick-contracts/action.yml">
+<img src="https://img.shields.io/github/actions/workflow/status/franRappazzini/boltick-contracts/radar.yml">
 
 ## 🚀 Deployment
 
