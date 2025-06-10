@@ -6,7 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-boltick = "B1dbydiCFRgTz9ZZtxGZ63AvBhwwguAbZe2CgmG3JJyY"
+boltick = "1aUtb8YSYuGUXkouRHy5bpxuuiyViqpgAUDb6rK7a8E"
+stake-spl = "B1dbydiCFRgTz9ZZtxGZ63AvBhwwguAbZe2CgmG3JJyY"
 
 [registry]
 url = "https://api.apr.dev"
