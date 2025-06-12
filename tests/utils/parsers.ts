@@ -1,0 +1,15 @@
+export const parseConfigAccount = (config) => ({
+  ...config,
+  authority: config.authority.toBase58(),
+  boltMint: config.boltMint.toBase58(),
+  boltStakingVault: config.boltStakingVault.toBase58(),
+  rewardVault: config.rewardVault.toBase58(),
+  rewardRate: config.rewardRate.toNumber(),
+  rewardPerToken: config.rewardPerToken.toNumber(),
+  lastUpdateTime: config.lastUpdateTime.toNumber(),
+  totalStaked: config.totalStaked.toNumber(),
+  rewardDuration: config.rewardDuration.toNumber(),
+  lockPeriod: config.lockPeriod.toNumber(),
+  totalRewardsDistributed: config.totalRewardsDistributed.toNumber(),
+  maxStakePerUser: config.maxStakePerUser.toNumber(),
+});

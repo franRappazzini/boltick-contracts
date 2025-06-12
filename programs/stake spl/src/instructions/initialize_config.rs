@@ -28,10 +28,10 @@ pub struct InitializeConfig<'info> {
         seeds = [SEED_VAULT],
         bump,
         token::mint = bolt_mint,
-        token::authority = authority,
+        token::authority = config,
         token::token_program = token_program
     )]
-    pub bolt_vault: InterfaceAccount<'info, TokenAccount>,
+    pub bolt_staking_vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         init,
@@ -39,7 +39,7 @@ pub struct InitializeConfig<'info> {
         seeds = [SEED_REWARD_VAULT],
         bump,
         token::mint = bolt_mint,
-        token::authority = authority,
+        token::authority = config,
         token::token_program = token_program
     )]
     pub bolt_reward_vault: InterfaceAccount<'info, TokenAccount>,
@@ -53,17 +53,18 @@ pub fn process_initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
     ctx.accounts.config.set_inner(Config {
         authority: ctx.accounts.authority.key(),
         bolt_mint: ctx.accounts.bolt_mint.key(),
-        bolt_vault: ctx.accounts.bolt_vault.key(),
+        bolt_staking_vault: ctx.accounts.bolt_staking_vault.key(),
         reward_vault: ctx.accounts.bolt_reward_vault.key(),
-        reward_rate: 0,
-        last_update_time: 0,
+        reward_rate: 38580246913, // ≈ (1_000_000 * 1e9 as u64) / (30 * 24 * 60 * 60)
+        reward_per_token: 0,
+        last_update_time: Clock::get()?.unix_timestamp as u64,
         total_staked: 0,
-        reward_duration: 0,
-        lock_period: 0,
+        reward_duration: 30 * 24 * 60 * 60, // 30 days
+        lock_period: 7 * 24 * 60 * 60,      // 7 days
         total_rewards_distributed: 0,
-        max_stake_per_user: 0,
+        max_stake_per_user: 50_000 * 1e9 as u64, // 50k tokens with 9 decimals
         paused: false,
-        bolt_vault_bump: ctx.bumps.bolt_vault,
+        bolt_staking_vault_bump: ctx.bumps.bolt_staking_vault,
         bump: ctx.bumps.config,
     });
 

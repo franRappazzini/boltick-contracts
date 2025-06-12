@@ -1,21 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 
 import { ComputeBudgetProgram, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
+import { SEED_COLLECTION_MINT, SEED_CONFIG, SEED_EVENT, SEED_TOKEN_MINT } from "./utils/constants";
 
 import { Boltick } from "../target/types/boltick";
 import { Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { expect } from "chai";
-
-const SEED_CONFIG = "config";
-const SEED_TREASURY = "treasury";
-const SEED_EVENT = "event";
-const SEED_COLLECTION_MINT = "collection_mint";
-const SEED_TOKEN_MINT = "token_mint";
-const SEED_DIGITAL_ACCESS = "digital_access";
-const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
-  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" // devnet and mainnet
-);
 
 // PARA EL metadata_program_account ES NECESARIO DESCARGAR EL PROGRAMA DE MAINNET Y EJECUTARLO LOCAL
 // https://solana.com/es/developers/cookbook/development/using-mainnet-accounts-programs
@@ -251,6 +242,54 @@ describe("boltick", () => {
     expect(eventAccount.currentNftCount.toNumber()).to.equal(nftId + 1);
     expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
     expect(creatorPrevBalance).to.be.lessThan(creatorPostBalance);
+  });
+
+  it("Should buy a token with the authority account!", async () => {
+    const eventId = 0;
+    const digitalAccessId = 1;
+
+    // create instruction to set compute unit limit
+    const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 });
+
+    const ix = await program.methods
+      .buyToken(bn(eventId), digitalAccessId)
+      .accounts({
+        tokenProgram: TOKEN_PROGRAM_ID,
+        eventCreator: wallet.publicKey,
+      })
+      .instruction();
+
+    const tx = new Transaction().add(computeIx, ix);
+
+    tx.feePayer = wallet.publicKey;
+    tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+
+    const signature = await provider.sendAndConfirm(tx, [wallet.payer]);
+    console.log("Buy token tx signature:", signature);
+
+    // fetch the event account to check the currentNftCount and to fetch nft address
+    const [eventPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(SEED_EVENT), bn(eventId).toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    const eventAccount = await program.account.event.fetch(eventPda);
+
+    // fetch the new nft address
+    const nftId = eventAccount.currentNftCount.toNumber() - 1;
+
+    const [nftPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(SEED_TOKEN_MINT),
+        eventAccount.collectionMintAccount.toBuffer(),
+        bn(nftId).toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    );
+
+    console.log("NFT PDA address:", nftPda.toBase58());
+
+    expect(eventAccount.currentNftCount.toNumber()).to.equal(nftId + 1);
+    expect(eventAccount.collectionMintAccount.toBase58()).to.equal(firstCollectionAddress);
   });
 
   it("Should fail buy a token due to a wrong event_creator!", async () => {

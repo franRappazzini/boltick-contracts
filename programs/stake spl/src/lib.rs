@@ -1,4 +1,5 @@
 mod constants;
+mod errors;
 mod instructions;
 mod states;
 
@@ -14,5 +15,9 @@ pub mod stake_spl {
 
     pub fn initialize_config(ctx: Context<InitializeConfig>) -> Result<()> {
         process_initialize_config(ctx)
+    }
+
+    pub fn deposit_stake(ctx: Context<DepositStake>, amount: u64) -> Result<()> {
+        process_deposit_stake(ctx, amount)
     }
 }

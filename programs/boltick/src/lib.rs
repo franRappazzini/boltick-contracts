@@ -10,7 +10,7 @@ pub use errors::*;
 pub use instructions::*;
 pub use states::*;
 
-declare_id!("B1dbydiCFRgTz9ZZtxGZ63AvBhwwguAbZe2CgmG3JJyY");
+declare_id!("1aUtb8YSYuGUXkouRHy5bpxuuiyViqpgAUDb6rK7a8E");
 
 #[program]
 pub mod boltick {
