@@ -41,7 +41,7 @@ pub struct DepositStake<'info> {
     )]
     pub depositor_stake: Account<'info, Stake>,
 
-    #[account(constraint = bolt_mint.key() == config.bolt_mint @ DappError::BoltMintMismatch)]
+    #[account(address = config.bolt_mint @ DappError::BoltMintMismatch)]
     pub bolt_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
@@ -56,6 +56,16 @@ pub struct DepositStake<'info> {
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
+
+// impl<'info> RewardTracker for DepositStake<'info> {
+//     fn update_reward_per_token(&mut self) -> Result<()> {
+//         self.update_reward_per_token()
+//     }
+
+//     fn update_accumulated_reward(&mut self) -> Result<()> {
+//         self.update_accumulated_reward()
+//     }
+// }
 
 impl<'info> DepositStake<'info> {
     pub fn validate(&self, amount: u64) -> Result<()> {
@@ -84,33 +94,34 @@ impl<'info> DepositStake<'info> {
         }
     }
 
-    pub fn update_reward_per_token(&mut self) -> Result<()> {
-        let now = Clock::get()?.unix_timestamp as u64;
-        let config = &mut self.config;
+    /*    pub fn update_reward_per_token(&mut self) -> Result<()> {
+           let now = Clock::get()?.unix_timestamp as u64;
+           let config = &mut self.config;
 
-        if config.total_staked > 0 {
-            let end_time = config.last_update_time + config.reward_duration;
-            let effective_time = std::cmp::min(now, end_time);
-            let time_elapsed = effective_time.saturating_sub(config.last_update_time);
+           if config.total_staked > 0 {
+               let end_time = config.last_update_time + config.reward_duration;
+               let effective_time = std::cmp::min(now, end_time);
+               let time_elapsed = effective_time.saturating_sub(config.last_update_time);
 
-            let reward_accrued = (config.reward_rate as u128) * (time_elapsed as u128);
+               let reward_accrued = (config.reward_rate as u128) * (time_elapsed as u128);
 
-            let reward_per_token_increment = reward_accrued
-                .checked_mul(REWARD_PRECISION)
-                .ok_or(DappError::ArithmeticOverflow)?
-                .checked_div(config.total_staked as u128)
-                .unwrap();
+               let reward_per_token_increment = reward_accrued
+                   .checked_mul(REWARD_PRECISION)
+                   .ok_or(DappError::ArithmeticOverflow)?
+                   .checked_div(config.total_staked as u128)
+                   .unwrap();
 
-            config.reward_per_token = config
-                .reward_per_token
-                .checked_add(reward_per_token_increment)
-                .ok_or(DappError::ArithmeticOverflow)?;
-        }
+               config.reward_per_token = config
+                   .reward_per_token
+                   .checked_add(reward_per_token_increment)
+                   .ok_or(DappError::ArithmeticOverflow)?;
+           }
 
-        config.last_update_time = now;
+           config.last_update_time = now;
 
-        Ok(())
-    }
+           Ok(())
+       }
+    */
 
     pub fn update_accumulated_reward(&mut self) -> Result<()> {
         let depositor_stake = &mut self.depositor_stake;
@@ -162,7 +173,7 @@ impl<'info> DepositStake<'info> {
 pub fn process_deposit_stake(ctx: Context<DepositStake>, amount: u64) -> Result<()> {
     ctx.accounts.validate(amount)?;
     ctx.accounts.init_stake_if_needed(ctx.bumps.depositor_stake);
-    ctx.accounts.update_reward_per_token()?;
+    ctx.accounts.config.update_reward_per_token()?;
     ctx.accounts.update_accumulated_reward()?;
 
     let acc = &ctx.accounts;

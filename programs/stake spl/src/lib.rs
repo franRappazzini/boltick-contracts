@@ -20,4 +20,8 @@ pub mod stake_spl {
     pub fn deposit_stake(ctx: Context<DepositStake>, amount: u64) -> Result<()> {
         process_deposit_stake(ctx, amount)
     }
+
+    pub fn withdraw_stake(ctx: Context<WithdrawStake>, amount: u64) -> Result<()> {
+        process_withdraw_stake(ctx, amount)
+    }
 }

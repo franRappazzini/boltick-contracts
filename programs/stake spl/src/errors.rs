@@ -8,6 +8,8 @@ pub enum DappError {
     StakingPaused,
     #[msg("The provided amount is zero")]
     ZeroAmount,
+    #[msg("The provided amount exceeds the available stake")]
+    InsufficientStake,
     #[msg("The provided amount exceeds the maximum allowed limit")]
     AmountExceedsLimit,
     #[msg("Arithmetic overflow occurred during the operation")]

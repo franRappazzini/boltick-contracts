@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+use crate::{constants::REWARD_PRECISION, errors::DappError};
+
 #[account]
 #[derive(InitSpace)]
 /// Configuration state for the staking program.
@@ -36,4 +38,47 @@ pub struct Config {
     pub paused: bool,
     pub bolt_staking_vault_bump: u8,
     pub bump: u8,
+}
+
+impl Config {
+    /// Updates the `reward_per_token` value based on the elapsed time since the last update.
+    ///
+    /// This function calculates the amount of reward accrued since the last update, up to the end of the current reward duration.
+    /// If there are staked tokens (`total_staked > 0`), it computes the increment in reward per token and updates the `reward_per_token` field.
+    /// The function also updates `last_update_time` to the current timestamp.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `DappError::ArithmeticOverflow` if any arithmetic operation overflows.
+    /// Returns an error if the current clock time cannot be retrieved.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the update is successful.
+    pub fn update_reward_per_token(&mut self) -> Result<()> {
+        let now = Clock::get()?.unix_timestamp as u64;
+
+        if self.total_staked > 0 {
+            let end_time = self.last_update_time + self.reward_duration;
+            let effective_time = std::cmp::min(now, end_time);
+            let time_elapsed = effective_time.saturating_sub(self.last_update_time);
+
+            let reward_accrued = (self.reward_rate as u128) * (time_elapsed as u128);
+
+            let reward_per_token_increment = reward_accrued
+                .checked_mul(REWARD_PRECISION)
+                .ok_or(DappError::ArithmeticOverflow)?
+                .checked_div(self.total_staked as u128)
+                .unwrap();
+
+            self.reward_per_token = self
+                .reward_per_token
+                .checked_add(reward_per_token_increment)
+                .ok_or(DappError::ArithmeticOverflow)?;
+        }
+
+        self.last_update_time = now;
+
+        Ok(())
+    }
 }

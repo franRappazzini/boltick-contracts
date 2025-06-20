@@ -32,8 +32,8 @@ describe("stake program", () => {
   console.log("Config PDA address:", configPda.toBase58());
 
   before(async () => {
-    // boltMint = await createMint(connection, wallet.payer, wallet.publicKey, null, 9);
-    boltMint = new PublicKey("72iLTJ7PMemAmF3m4kuSrVd3oDKgkxeY9NvRL2AU6yYN");
+    boltMint = await createMint(connection, wallet.payer, wallet.publicKey, null, 9);
+    // boltMint = new PublicKey("72iLTJ7PMemAmF3m4kuSrVd3oDKgkxeY9NvRL2AU6yYN");
     console.log("BOLT Mint Address:", boltMint.toBase58());
 
     // airdrop to the random keypair
@@ -108,6 +108,25 @@ describe("stake program", () => {
 
     const configAccount = await program.account.config.fetch(configPda);
     console.log("Config account after deposit:", parseConfigAccount(configAccount));
+  });
+
+  it("Should withdraw BOLT from stake!", async () => {
+    const amount = bn(80 * 1e9);
+
+    const tx = await program.methods
+      .withdrawStake(amount)
+      .accounts({
+        boltMint,
+        depositor: randomKeypair.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([randomKeypair])
+      .rpc({ skipPreflight: true });
+
+    console.log("Withdraw Stake tx signature:", tx);
+
+    const configAccount = await program.account.config.fetch(configPda);
+    console.log("Config account after withdraw:", parseConfigAccount(configAccount));
   });
 });
 
